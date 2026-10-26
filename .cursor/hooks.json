@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "wscript.exe //B //nologo \"H:/Python工程/lwy/scripts/silent_hook.vbs\" start \"H:/Python工程/招投标材料智能编制与核验平台\"",
+        "timeout": 15
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "wscript.exe //B //nologo \"H:/Python工程/lwy/scripts/silent_hook.vbs\" stop",
+        "timeout": 15
+      }
+    ]
+  }
+}
