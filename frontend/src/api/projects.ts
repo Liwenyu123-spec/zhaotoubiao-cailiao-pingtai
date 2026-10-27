@@ -38,6 +38,11 @@ export interface MaterialTask {
   due_at: string
   task_status: 'open' | 'submitted' | 'done' | 'recheck'
 }
+export interface TaskSuggestion {
+  requirement_id: number
+  department: string
+  reason: string
+}
 
 export interface ProjectDetail {
   project: Project
@@ -87,4 +92,10 @@ export function createTask(projectId: number, body: { requirement_id: number; de
 
 export function patchTask(id: number, body: { task_status: MaterialTask['task_status'] }) {
   return api<MaterialTask>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+}
+
+export function generateTaskPlan(projectId: number) {
+  return api<{ suggestions: TaskSuggestion[]; needs_human_review: boolean; trace: string[]; model_used: boolean }>(
+    `/api/projects/${projectId}/agent/task-plan`, { method: 'POST' },
+  )
 }

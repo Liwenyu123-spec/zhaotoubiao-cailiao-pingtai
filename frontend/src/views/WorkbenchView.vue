@@ -6,6 +6,7 @@ import {
   addRequirement,
   createProject,
   createTask,
+  generateTaskPlan,
   getProject,
   listProjects,
   patchRequirement,
@@ -13,6 +14,7 @@ import {
   type Project,
   type ProjectDetail,
   type Requirement,
+  type TaskSuggestion,
 } from '../api/projects'
 
 const projects = ref<Project[]>([])
@@ -26,6 +28,8 @@ const categories = ['资格', '评分', '格式', '签章', '时间', '商务', 
 const departments = ['投标负责人', '商务', '技术', '法务合规', '财务', '采购', '项目管理']
 const assetTypes = ['证照', '业绩', '人员', '财务', '信用', '模板']
 const archiveAssets = ref<ArchiveAsset[]>([])
+const suggestions = ref<TaskSuggestion[]>([])
+const suggestionTrace = ref<string[]>([])
 const archiveForm = reactive({ asset_type: '证照', title: '', holder_name: '', valid_until: '', confidentiality: 'internal', scope_note: '', source_project: '' })
 
 const statusText: Record<Requirement['status'], string> = {
@@ -115,6 +119,22 @@ async function onCreateTask() {
   await openProject(currentId.value)
 }
 
+async function onGeneratePlan() {
+  if (!currentId.value) return
+  const result = await generateTaskPlan(currentId.value)
+  suggestions.value = result.suggestions
+  suggestionTrace.value = result.trace
+  ElMessage.success(`已生成 ${result.suggestions.length} 条任务建议，请人工确认`)
+}
+
+async function onAcceptSuggestion(item: TaskSuggestion) {
+  if (!currentId.value) return
+  await createTask(currentId.value, { requirement_id: item.requirement_id, department: item.department, due_at: '' })
+  suggestions.value = suggestions.value.filter((row) => row.requirement_id !== item.requirement_id)
+  await openProject(currentId.value)
+  ElMessage.success('已采用建议并创建任务')
+}
+
 onMounted(async () => {
   await refreshProjects()
   await refreshArchive()
@@ -171,6 +191,7 @@ onMounted(async () => {
       <div class="form-pad">
         <div v-if="detail" class="task-box task-box-prominent">
           <div class="subhead"><strong>材料任务</strong><span>当前项目的任务分派与完成情况</span></div>
+          <el-button size="small" type="success" plain @click="onGeneratePlan">生成任务建议</el-button>
           <div class="extra-row">
             <el-select v-model="taskForm.requirement_id" placeholder="选择要求" style="min-width: 260px">
               <el-option v-for="item in detail.requirements" :key="item.id" :label="`${item.category}：${item.content.slice(0, 30)}`" :value="item.id" />
@@ -187,6 +208,13 @@ onMounted(async () => {
             <el-table-column prop="due_at" label="截止" width="130" />
             <el-table-column prop="task_status" label="状态" width="100" />
           </el-table>
+          <div v-if="suggestions.length" class="suggestion-list">
+            <div class="suggestion-head">Agent 建议（需人工确认）<span>{{ suggestionTrace.join(' → ') }}</span></div>
+            <div v-for="item in suggestions" :key="item.requirement_id" class="suggestion-item">
+              <span>要求 #{{ item.requirement_id }} · 建议分派给 <strong>{{ item.department }}</strong></span>
+              <el-button size="small" @click="onAcceptSuggestion(item)">采用</el-button>
+            </div>
+          </div>
         </div>
         <el-alert
           title="关键条款、低置信项和空白扫描页都要人工确认。读不出的内容不会被补全。"

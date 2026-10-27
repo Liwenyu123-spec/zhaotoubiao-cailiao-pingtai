@@ -28,4 +28,8 @@ body { margin: 0; background: #f3f1ea; }
 .archive-list { display: grid; gap: 6px; margin-top: 12px; }
 .archive-item { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #f7f8f5; font-size: 13px; }
 .archive-item span { color: #6d756e; }
+.suggestion-list { margin-top: 12px; padding: 10px; border-radius: 8px; background: #fffaf0; border: 1px solid #ead8ad; }
+.suggestion-head { display: flex; justify-content: space-between; color: #7a5a1e; font-size: 13px; margin-bottom: 6px; }
+.suggestion-head span { color: #9a8b70; font-size: 11px; }
+.suggestion-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid #f0e6cf; font-size: 13px; }
 @media (max-width: 1100px) { .grid-2 { grid-template-columns: 1fr; } }
