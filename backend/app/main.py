@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from .auth import current_user, login, logout, seed_users
 from .db import connect, init_db
 from .parser import extract_requirements, extract_text
+from .agents import task_plan_graph
 
 UPLOADS = Path(__file__).resolve().parents[1] / "data" / "uploads"
 
@@ -192,6 +193,26 @@ def list_tasks(project_id: int) -> list[dict]:
             """, (project_id,)
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+@app.post("/api/projects/{project_id}/agent/task-plan")
+def generate_task_plan(project_id: int) -> dict:
+    with connect() as conn:
+        project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if project is None:
+            raise HTTPException(404, "项目不存在")
+        requirements = conn.execute(
+            "SELECT id, category, content, status FROM requirements WHERE project_id = ? ORDER BY id",
+            (project_id,),
+        ).fetchall()
+    result = task_plan_graph.invoke({"requirements": [dict(row) for row in requirements]})
+    return {
+        "project_id": project_id,
+        "suggestions": result.get("suggestions", []),
+        "needs_human_review": result.get("needs_human_review", True),
+        "trace": result.get("trace", []),
+        "model_used": False,
+    }
 
 
 @app.post("/api/projects/{project_id}/tasks")
