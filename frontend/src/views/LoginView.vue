@@ -7,7 +7,7 @@ import { login } from '../api/auth'
 const route = useRoute()
 const router = useRouter()
 const loading = ref(false)
-const form = reactive({ username: 'lead', password: '' })
+const form = reactive({ username: 'admin', password: 'Admin#2026' })
 
 async function submit() {
   loading.value = true
