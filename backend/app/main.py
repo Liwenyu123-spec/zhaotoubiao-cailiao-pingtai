@@ -345,6 +345,16 @@ def export_project_checks(project_id: int) -> StreamingResponse:
     })
 
 
+@app.get("/api/projects/{project_id}/audit-events")
+def list_audit_events(project_id: int) -> list[dict]:
+    """返回项目审计记录；后续各写操作会逐步补充记录。"""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM audit_events WHERE project_id = ? ORDER BY id DESC LIMIT 100", (project_id,)
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 @app.post("/api/projects/{project_id}/tasks")
 def create_task(project_id: int, body: TaskIn) -> dict:
     with connect() as conn:
