@@ -355,6 +355,26 @@ def list_audit_events(project_id: int) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+@app.get("/api/projects/{project_id}/package-manifest")
+def package_manifest(project_id: int) -> dict:
+    with connect() as conn:
+        project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if project is None:
+            raise HTTPException(404, "项目不存在")
+        documents = conn.execute("SELECT id, filename, parse_status, page_count FROM documents WHERE project_id = ?", (project_id,)).fetchall()
+        requirements = conn.execute("SELECT id, category, content, status, source_file, source_location FROM requirements WHERE project_id = ?", (project_id,)).fetchall()
+        tasks = conn.execute("SELECT id, requirement_id, department, due_at, task_status FROM material_tasks WHERE project_id = ?", (project_id,)).fetchall()
+        clarifications = conn.execute("SELECT id, title, change_type, received_at, summary FROM clarifications WHERE project_id = ?", (project_id,)).fetchall()
+    return {
+        "project": dict(project),
+        "documents": [dict(row) for row in documents],
+        "requirements": [dict(row) for row in requirements],
+        "tasks": [dict(row) for row in tasks],
+        "clarifications": [dict(row) for row in clarifications],
+        "note": "这是材料包清单，不是正式投标文件，也不包含电子签章或自动提交。",
+    }
+
+
 @app.post("/api/projects/{project_id}/tasks")
 def create_task(project_id: int, body: TaskIn) -> dict:
     with connect() as conn:

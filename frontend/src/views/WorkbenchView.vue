@@ -17,6 +17,7 @@ import {
   createClarificationImpact,
   listClarifications,
   listAuditEvents,
+  getPackageManifest,
   uploadTaskFile,
   uploadDocument,
   type Project,
@@ -195,6 +196,14 @@ async function onExportChecks() {
   URL.revokeObjectURL(url)
 }
 
+async function onExportManifest() {
+  if (!currentId.value) return
+  const manifest = await getPackageManifest(currentId.value)
+  const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json;charset=utf-8' })
+  const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url
+  link.download = `project-${currentId.value}-package-manifest.json`; link.click(); URL.revokeObjectURL(url)
+}
+
 onMounted(async () => {
   await refreshProjects()
   await refreshArchive()
@@ -293,7 +302,7 @@ onMounted(async () => {
           </div>
         </div>
         <div v-if="detail" class="check-box">
-          <div class="subhead"><strong>完整性核验</strong><span><el-button size="small" @click="onRunChecks">运行检查</el-button><el-button size="small" :disabled="!checkResult" @click="onExportChecks">导出 CSV</el-button></span></div>
+          <div class="subhead"><strong>完整性核验</strong><span><el-button size="small" @click="onRunChecks">运行检查</el-button><el-button size="small" :disabled="!checkResult" @click="onExportChecks">导出 CSV</el-button><el-button size="small" @click="onExportManifest">导出材料包清单</el-button></span></div>
           <el-alert v-if="checkResult" :title="checkResult.pass ? '当前项目未发现待处理问题' : `发现 ${checkResult.problem_count} 项待处理问题`" :type="checkResult.pass ? 'success' : 'warning'" :closable="false" />
           <ul v-if="checkResult && !checkResult.pass" class="check-list">
             <li v-for="item in checkResult.items" :key="item.id"><strong>#{{ item.id }} {{ item.category }}</strong>：{{ item.problems.join('、') }}</li>

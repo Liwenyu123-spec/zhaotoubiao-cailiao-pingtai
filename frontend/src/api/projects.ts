@@ -130,3 +130,4 @@ export function createClarificationImpact(clarificationId: number, body: { requi
 }
 export interface AuditEvent { id: number; action: string; target_type: string; target_id?: number; detail: string; created_at: string }
 export function listAuditEvents(projectId: number) { return api<AuditEvent[]>(`/api/projects/${projectId}/audit-events`) }
+export function getPackageManifest(projectId: number) { return api<Record<string, unknown>>(`/api/projects/${projectId}/package-manifest`) }
