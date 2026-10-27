@@ -151,6 +151,13 @@ def list_projects() -> list[dict]:
     return [dict(row) for row in rows]
 
 
+@app.get("/api/users")
+def list_users() -> list[dict]:
+    with connect() as conn:
+        rows = conn.execute("SELECT id, username, display_name, role FROM users ORDER BY id").fetchall()
+    return [dict(row) for row in rows]
+
+
 @app.post("/api/projects")
 def create_project(body: ProjectIn) -> dict:
     with connect() as conn:

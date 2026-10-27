@@ -54,6 +54,8 @@ export interface ProjectDetail {
 export function listProjects() {
   return api<Project[]>('/api/projects')
 }
+export interface ProjectUser { id: number; username: string; display_name: string; role: string }
+export function listUsers() { return api<ProjectUser[]>('/api/users') }
 
 export function createProject(body: Pick<Project, 'name' | 'code' | 'bidder' | 'deadline'>) {
   return api<Project>('/api/projects', { method: 'POST', body: JSON.stringify(body) })
