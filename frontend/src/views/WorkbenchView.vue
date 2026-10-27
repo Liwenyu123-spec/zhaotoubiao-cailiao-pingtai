@@ -22,6 +22,7 @@ const form = reactive({ name: '', code: '', bidder: '', deadline: '' })
 const extra = reactive({ category: '资格', content: '' })
 const taskForm = reactive({ requirement_id: 0, department: '商务', due_at: '' })
 const categories = ['资格', '评分', '格式', '签章', '时间', '商务', '技术', '其他']
+const departments = ['投标负责人', '商务', '技术', '法务合规', '财务', '采购', '项目管理']
 
 const statusText: Record<Requirement['status'], string> = {
   pending: '待确认',
@@ -136,7 +137,9 @@ onMounted(async () => {
             <el-select v-model="taskForm.requirement_id" placeholder="选择要求" style="min-width: 260px">
               <el-option v-for="item in detail.requirements" :key="item.id" :label="`${item.category}：${item.content.slice(0, 30)}`" :value="item.id" />
             </el-select>
-            <el-input v-model="taskForm.department" placeholder="责任部门" style="width: 130px" />
+            <el-select v-model="taskForm.department" placeholder="责任部门" style="width: 150px">
+              <el-option v-for="item in departments" :key="item" :label="item" :value="item" />
+            </el-select>
             <el-input v-model="taskForm.due_at" placeholder="截止日期" style="width: 150px" />
             <el-button type="primary" @click="onCreateTask">分派任务</el-button>
           </div>
