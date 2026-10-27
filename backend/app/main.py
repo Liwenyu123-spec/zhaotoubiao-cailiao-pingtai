@@ -118,6 +118,13 @@ class ArchiveIn(BaseModel):
     source_project: str = ""
 
 
+class ClarificationIn(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    change_type: str = "changed"
+    received_at: str = ""
+    summary: str = ""
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True, "stage": "test-v0", "external_model": False}
@@ -254,6 +261,29 @@ def project_checks(project_id: int) -> dict:
         "pass": not items,
         "items": items,
     }
+
+
+@app.get("/api/projects/{project_id}/clarifications")
+def list_clarifications(project_id: int) -> list[dict]:
+    with connect() as conn:
+        rows = conn.execute("SELECT * FROM clarifications WHERE project_id = ? ORDER BY id DESC", (project_id,)).fetchall()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/projects/{project_id}/clarifications")
+def create_clarification(project_id: int, body: ClarificationIn) -> dict:
+    if body.change_type not in {"added", "changed", "revoked"}:
+        raise HTTPException(400, "变更类型不合法")
+    with connect() as conn:
+        if conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone() is None:
+            raise HTTPException(404, "项目不存在")
+        cur = conn.execute(
+            """INSERT INTO clarifications (project_id, title, change_type, received_at, summary)
+            VALUES (?, ?, ?, ?, ?)""",
+            (project_id, body.title.strip(), body.change_type, body.received_at.strip(), body.summary.strip()),
+        )
+        row = conn.execute("SELECT * FROM clarifications WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return dict(row)
 
 
 @app.get("/api/projects/{project_id}/checks/export")

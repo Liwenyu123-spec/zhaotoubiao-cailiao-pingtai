@@ -13,6 +13,8 @@ import {
   patchTask,
   runProjectChecks,
   exportProjectChecks,
+  createClarification,
+  listClarifications,
   uploadTaskFile,
   uploadDocument,
   type Project,
@@ -36,6 +38,8 @@ const archiveAssets = ref<ArchiveAsset[]>([])
 const suggestions = ref<TaskSuggestion[]>([])
 const suggestionTrace = ref<string[]>([])
 const checkResult = ref<{ total_requirements: number; problem_count: number; pass: boolean; items: Array<{ id: number; category: string; content: string; problems: string[] }> } | null>(null)
+const clarifications = ref<Array<{ id: number; title: string; change_type: string; received_at: string; summary: string }>>([])
+const clarificationForm = reactive({ title: '', change_type: 'changed', received_at: '', summary: '' })
 const archiveForm = reactive({ asset_type: '证照', title: '', holder_name: '', valid_until: '', confidentiality: 'internal', scope_note: '', source_project: '' })
 
 const statusText: Record<Requirement['status'], string> = {
@@ -67,6 +71,15 @@ async function onAddArchive() {
 async function openProject(id: number) {
   currentId.value = id
   detail.value = await getProject(id)
+  clarifications.value = await listClarifications(id)
+}
+
+async function onAddClarification() {
+  if (!currentId.value || !clarificationForm.title.trim()) return ElMessage.warning('请填写补遗标题')
+  await createClarification(currentId.value, { ...clarificationForm })
+  clarificationForm.title = ''; clarificationForm.received_at = ''; clarificationForm.summary = ''
+  clarifications.value = await listClarifications(currentId.value)
+  ElMessage.success('澄清补遗已登记')
 }
 
 async function onCreate() {
@@ -273,6 +286,16 @@ onMounted(async () => {
           <ul v-if="checkResult && !checkResult.pass" class="check-list">
             <li v-for="item in checkResult.items" :key="item.id"><strong>#{{ item.id }} {{ item.category }}</strong>：{{ item.problems.join('、') }}</li>
           </ul>
+        </div>
+        <div v-if="detail" class="clarification-box">
+          <div class="subhead"><strong>澄清与补遗</strong><span>登记后再关联受影响要求</span></div>
+          <div class="extra-row">
+            <el-input v-model="clarificationForm.title" placeholder="补遗标题" />
+            <el-select v-model="clarificationForm.change_type" style="width: 110px"><el-option label="新增" value="added" /><el-option label="变更" value="changed" /><el-option label="作废" value="revoked" /></el-select>
+            <el-input v-model="clarificationForm.received_at" placeholder="收到日期" style="width: 130px" />
+            <el-button @click="onAddClarification">登记</el-button>
+          </div>
+          <p v-for="item in clarifications" :key="item.id" class="clarification-item"><strong>{{ item.title }}</strong> · {{ item.change_type }} · {{ item.received_at || '未填日期' }}<br><span>{{ item.summary || '暂无摘要' }}</span></p>
         </div>
         <el-alert
           title="关键条款、低置信项和空白扫描页都要人工确认。读不出的内容不会被补全。"

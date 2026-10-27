@@ -119,3 +119,9 @@ export function exportProjectChecks(projectId: number) {
     return response.blob()
   })
 }
+
+export interface Clarification { id: number; title: string; change_type: string; received_at: string; summary: string }
+export function listClarifications(projectId: number) { return api<Clarification[]>(`/api/projects/${projectId}/clarifications`) }
+export function createClarification(projectId: number, body: Omit<Clarification, 'id'>) {
+  return api<Clarification>(`/api/projects/${projectId}/clarifications`, { method: 'POST', body: JSON.stringify(body) })
+}
