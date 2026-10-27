@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import {
   addRequirement,
   createProject,
+  createTask,
   getProject,
   listProjects,
   patchRequirement,
@@ -11,6 +12,7 @@ import {
   type Project,
   type ProjectDetail,
   type Requirement,
+  type MaterialTask,
 } from '../api/projects'
 
 const projects = ref<Project[]>([])
@@ -19,6 +21,7 @@ const detail = ref<ProjectDetail | null>(null)
 const loading = ref(false)
 const form = reactive({ name: '', code: '', bidder: '', deadline: '' })
 const extra = reactive({ category: '资格', content: '' })
+const taskForm = reactive({ requirement_id: 0, department: '商务', due_at: '' })
 const categories = ['资格', '评分', '格式', '签章', '时间', '商务', '技术', '其他']
 
 const statusText: Record<Requirement['status'], string> = {
@@ -81,6 +84,15 @@ async function setStatus(row: { id: number }, status: Requirement['status']) {
   await patchRequirement(row.id, { status })
   await refreshProjects()
   if (currentId.value) await openProject(currentId.value)
+}
+
+async function onCreateTask() {
+  if (!currentId.value || !taskForm.requirement_id) return ElMessage.warning('请选择要分派的要求')
+  await createTask(currentId.value, { ...taskForm })
+  taskForm.requirement_id = 0
+  taskForm.due_at = ''
+  ElMessage.success('任务已创建')
+  await openProject(currentId.value)
 }
 
 onMounted(async () => {
@@ -163,6 +175,23 @@ onMounted(async () => {
             </template>
           </el-table-column>
         </el-table>
+        <div v-if="detail" class="task-box">
+          <div class="subhead"><strong>材料任务</strong><span>把要求分派给部门，后续接入责任人和材料档案</span></div>
+          <div class="extra-row">
+            <el-select v-model="taskForm.requirement_id" placeholder="选择要求" style="min-width: 260px">
+              <el-option v-for="item in detail.requirements" :key="item.id" :label="`${item.category}：${item.content.slice(0, 30)}`" :value="item.id" />
+            </el-select>
+            <el-input v-model="taskForm.department" placeholder="责任部门" style="width: 130px" />
+            <el-input v-model="taskForm.due_at" placeholder="截止日期" style="width: 150px" />
+            <el-button type="primary" @click="onCreateTask">分派任务</el-button>
+          </div>
+          <el-table :data="detail.tasks || []" empty-text="还没有材料任务">
+            <el-table-column prop="department" label="部门" width="100" />
+            <el-table-column prop="requirement_content" label="对应要求" min-width="260" />
+            <el-table-column prop="due_at" label="截止" width="130" />
+            <el-table-column prop="task_status" label="状态" width="100" />
+          </el-table>
+        </div>
       </div>
     </div>
   </div>

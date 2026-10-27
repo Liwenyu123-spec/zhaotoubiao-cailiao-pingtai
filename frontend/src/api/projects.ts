@@ -29,11 +29,21 @@ export interface Requirement {
   status: 'pending' | 'confirmed' | 'not_applicable'
   note: string
 }
+export interface MaterialTask {
+  id: number
+  requirement_id: number
+  requirement_content: string
+  department: string
+  assignee_name?: string
+  due_at: string
+  task_status: 'open' | 'submitted' | 'done' | 'recheck'
+}
 
 export interface ProjectDetail {
   project: Project
   documents: BidDocument[]
   requirements: Requirement[]
+  tasks: MaterialTask[]
 }
 
 export function listProjects() {
@@ -69,4 +79,12 @@ export function patchRequirement(id: number, body: { status: Requirement['status
     method: 'PATCH',
     body: JSON.stringify(body),
   })
+}
+
+export function createTask(projectId: number, body: { requirement_id: number; department: string; due_at: string }) {
+  return api<MaterialTask>(`/api/projects/${projectId}/tasks`, { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function patchTask(id: number, body: { task_status: MaterialTask['task_status'] }) {
+  return api<MaterialTask>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 }
