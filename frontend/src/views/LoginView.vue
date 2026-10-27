@@ -38,7 +38,7 @@ async function submit() {
       </div>
     </section>
     <section class="login-pane">
-      <form class="login-card" @submit.prevent="submit">
+      <div class="login-card">
         <p class="kicker">登录</p>
         <h2>进入工作台</h2>
         <p class="login-lead">测试账号见《测试账号速查》。</p>
@@ -49,9 +49,9 @@ async function submit() {
           <el-form-item label="密码">
             <el-input v-model="form.password" size="large" type="password" show-password autocomplete="current-password" @keyup.enter="submit" />
           </el-form-item>
-          <el-button class="submit" type="primary" size="large" :loading="loading" native-type="submit">登录</el-button>
+          <el-button class="submit" type="primary" size="large" :loading="loading" @click="submit">登录</el-button>
         </el-form>
-      </form>
+      </div>
     </section>
   </main>
 </template>
