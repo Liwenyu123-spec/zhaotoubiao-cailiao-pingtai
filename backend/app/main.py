@@ -125,6 +125,12 @@ class ClarificationIn(BaseModel):
     summary: str = ""
 
 
+class ClarificationImpactIn(BaseModel):
+    requirement_id: int
+    impact_note: str = ""
+    needs_recheck: bool = True
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True, "stage": "test-v0", "external_model": False}
@@ -283,6 +289,38 @@ def create_clarification(project_id: int, body: ClarificationIn) -> dict:
             (project_id, body.title.strip(), body.change_type, body.received_at.strip(), body.summary.strip()),
         )
         row = conn.execute("SELECT * FROM clarifications WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return dict(row)
+
+
+@app.get("/api/clarifications/{clarification_id}/impacts")
+def list_clarification_impacts(clarification_id: int) -> list[dict]:
+    with connect() as conn:
+        rows = conn.execute(
+            """SELECT i.*, r.category, r.content FROM clarification_impacts i
+            JOIN requirements r ON r.id = i.requirement_id
+            WHERE i.clarification_id = ? ORDER BY i.id DESC""", (clarification_id,)
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/clarifications/{clarification_id}/impacts")
+def create_clarification_impact(clarification_id: int, body: ClarificationImpactIn) -> dict:
+    with connect() as conn:
+        clarification = conn.execute("SELECT project_id FROM clarifications WHERE id = ?", (clarification_id,)).fetchone()
+        if clarification is None:
+            raise HTTPException(404, "澄清补遗不存在")
+        requirement = conn.execute(
+            "SELECT id FROM requirements WHERE id = ? AND project_id = ?",
+            (body.requirement_id, clarification["project_id"]),
+        ).fetchone()
+        if requirement is None:
+            raise HTTPException(404, "要求不存在或不属于该项目")
+        cur = conn.execute(
+            """INSERT INTO clarification_impacts (clarification_id, requirement_id, impact_note, needs_recheck)
+            VALUES (?, ?, ?, ?)""",
+            (clarification_id, body.requirement_id, body.impact_note.strip(), int(body.needs_recheck)),
+        )
+        row = conn.execute("SELECT * FROM clarification_impacts WHERE id = ?", (cur.lastrowid,)).fetchone()
     return dict(row)
 
 

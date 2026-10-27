@@ -14,6 +14,7 @@ import {
   runProjectChecks,
   exportProjectChecks,
   createClarification,
+  createClarificationImpact,
   listClarifications,
   uploadTaskFile,
   uploadDocument,
@@ -40,6 +41,7 @@ const suggestionTrace = ref<string[]>([])
 const checkResult = ref<{ total_requirements: number; problem_count: number; pass: boolean; items: Array<{ id: number; category: string; content: string; problems: string[] }> } | null>(null)
 const clarifications = ref<Array<{ id: number; title: string; change_type: string; received_at: string; summary: string }>>([])
 const clarificationForm = reactive({ title: '', change_type: 'changed', received_at: '', summary: '' })
+const impactForm = reactive({ clarification_id: 0, requirement_id: 0, impact_note: '' })
 const archiveForm = reactive({ asset_type: '证照', title: '', holder_name: '', valid_until: '', confidentiality: 'internal', scope_note: '', source_project: '' })
 
 const statusText: Record<Requirement['status'], string> = {
@@ -80,6 +82,13 @@ async function onAddClarification() {
   clarificationForm.title = ''; clarificationForm.received_at = ''; clarificationForm.summary = ''
   clarifications.value = await listClarifications(currentId.value)
   ElMessage.success('澄清补遗已登记')
+}
+
+async function onAddImpact() {
+  if (!impactForm.clarification_id || !impactForm.requirement_id) return ElMessage.warning('请选择补遗和受影响要求')
+  await createClarificationImpact(impactForm.clarification_id, { requirement_id: impactForm.requirement_id, impact_note: impactForm.impact_note })
+  impactForm.requirement_id = 0; impactForm.impact_note = ''
+  ElMessage.success('已标记受影响要求，需要重新检查')
 }
 
 async function onCreate() {
@@ -296,6 +305,12 @@ onMounted(async () => {
             <el-button @click="onAddClarification">登记</el-button>
           </div>
           <p v-for="item in clarifications" :key="item.id" class="clarification-item"><strong>{{ item.title }}</strong> · {{ item.change_type }} · {{ item.received_at || '未填日期' }}<br><span>{{ item.summary || '暂无摘要' }}</span></p>
+          <div v-if="clarifications.length && detail.requirements.length" class="extra-row">
+            <el-select v-model="impactForm.clarification_id" placeholder="选择补遗" style="min-width: 180px"><el-option v-for="item in clarifications" :key="item.id" :label="item.title" :value="item.id" /></el-select>
+            <el-select v-model="impactForm.requirement_id" placeholder="选择受影响要求" style="min-width: 220px"><el-option v-for="item in detail.requirements" :key="item.id" :label="`#${item.id} ${item.category}`" :value="item.id" /></el-select>
+            <el-input v-model="impactForm.impact_note" placeholder="影响说明" />
+            <el-button @click="onAddImpact">标记重检</el-button>
+          </div>
         </div>
         <el-alert
           title="关键条款、低置信项和空白扫描页都要人工确认。读不出的内容不会被补全。"

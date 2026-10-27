@@ -125,3 +125,6 @@ export function listClarifications(projectId: number) { return api<Clarification
 export function createClarification(projectId: number, body: Omit<Clarification, 'id'>) {
   return api<Clarification>(`/api/projects/${projectId}/clarifications`, { method: 'POST', body: JSON.stringify(body) })
 }
+export function createClarificationImpact(clarificationId: number, body: { requirement_id: number; impact_note: string }) {
+  return api(`/api/clarifications/${clarificationId}/impacts`, { method: 'POST', body: JSON.stringify({ ...body, needs_recheck: true }) })
+}
