@@ -51,3 +51,21 @@ npm run dev
 ## 数据与安全
 
 真实招标文件、报价、财务资料和客户材料不得提交到 Git。仅使用 `samples/` 中的脱敏样例。
+from pathlib import Path
+p=Path('更新日志.md')
+s=p.read_text(encoding='utf-8').replace('# 更新日志`r`n`r`n', '# 更新日志\n\n')
+parts=s.split('\n## v')
+header=parts[0].rstrip()
+blocks=['## v'+x.strip() for x in parts[1:] if x.strip()]
+# Keep newest versions first by semantic version in heading.
+def ver(b):
+    import re
+    m=re.search(r'v(\d+)\.(\d+)\.(\d+)', b)
+    return tuple(map(int,m.groups())) if m else (0,0,0)
+blocks=sorted(blocks,key=ver,reverse=True)
+p.write_text(header+'\n\n'+'\n\n'.join(blocks)+'\n',encoding='utf-8')
+PY
+@'
+# 文档同步说明
+
+当前版本变更记录已统一整理到 `更新日志.md` 顶部，最新版本按版本号倒序排列；开发问题记录保存在 `开发问题与解决方案.md`。
