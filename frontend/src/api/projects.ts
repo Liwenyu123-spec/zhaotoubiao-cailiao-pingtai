@@ -1,0 +1,72 @@
+import { api } from './http'
+
+export interface Project {
+  id: number
+  name: string
+  code: string
+  bidder: string
+  deadline: string
+  created_at: string
+  requirement_count?: number
+  pending_count?: number
+}
+
+export interface BidDocument {
+  id: number
+  filename: string
+  parse_status: string
+  parse_note: string
+  page_count: number
+}
+
+export interface Requirement {
+  id: number
+  category: string
+  content: string
+  source_file: string
+  source_location: string
+  confidence: string
+  status: 'pending' | 'confirmed' | 'not_applicable'
+  note: string
+}
+
+export interface ProjectDetail {
+  project: Project
+  documents: BidDocument[]
+  requirements: Requirement[]
+}
+
+export function listProjects() {
+  return api<Project[]>('/api/projects')
+}
+
+export function createProject(body: Pick<Project, 'name' | 'code' | 'bidder' | 'deadline'>) {
+  return api<Project>('/api/projects', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function getProject(id: number) {
+  return api<ProjectDetail>(`/api/projects/${id}`)
+}
+
+export function uploadDocument(projectId: number, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return api<{ extracted: number; parse_note: string }>(`/api/projects/${projectId}/documents`, {
+    method: 'POST',
+    body: form,
+  })
+}
+
+export function addRequirement(projectId: number, body: { category: string; content: string }) {
+  return api<Requirement>(`/api/projects/${projectId}/requirements`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function patchRequirement(id: number, body: { status: Requirement['status'] }) {
+  return api<Requirement>(`/api/requirements/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}

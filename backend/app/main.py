@@ -2,25 +2,74 @@ import shutil
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from .auth import current_user, login, logout, seed_users
 from .db import connect, init_db
 from .parser import extract_requirements, extract_text
 
-ROOT = Path(__file__).resolve().parents[2]
 UPLOADS = Path(__file__).resolve().parents[1] / "data" / "uploads"
-FRONTEND = ROOT / "frontend"
 
-app = FastAPI(title="招投标材料智能编制与核验平台 · 测试版")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    seed_users()
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    yield
+
+
+app = FastAPI(title="招投标材料智能编制与核验平台 · 测试版", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+OPEN_PATHS = {"/api/health", "/api/auth/login"}
+
+
+@app.middleware("http")
+async def require_login(request: Request, call_next):
+    if request.url.path.startswith("/api") and request.url.path not in OPEN_PATHS:
+        token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+        if current_user(token) is None:
+            return JSONResponse({"detail": "请先登录"}, status_code=401)
+    return await call_next(request)
+
+
+class LoginIn(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/auth/login")
+def auth_login(body: LoginIn) -> dict:
+    result = login(body.username, body.password)
+    if result is None:
+        raise HTTPException(401, "账号或密码不正确")
+    return result
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request) -> dict:
+    token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    user = current_user(token)
+    if user is None:
+        raise HTTPException(401, "请先登录")
+    return user
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request) -> dict:
+    token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    logout(token)
+    return {"ok": True}
 
 
 class ProjectIn(BaseModel):
@@ -42,12 +91,6 @@ class RequirementPatch(BaseModel):
     category: str | None = None
     status: str | None = None
     note: str | None = None
-
-
-@app.on_event("startup")
-def startup() -> None:
-    init_db()
-    UPLOADS.mkdir(parents=True, exist_ok=True)
 
 
 @app.get("/api/health")
@@ -200,5 +243,9 @@ def patch_requirement(requirement_id: int, body: RequirementPatch) -> dict:
 
 
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(FRONTEND / "index.html")
+def index() -> dict:
+    return {
+        "service": "bid-materials-test",
+        "ui": "http://127.0.0.1:5173",
+        "note": "页面由 Vite 提供，接口仍在本服务。",
+    }

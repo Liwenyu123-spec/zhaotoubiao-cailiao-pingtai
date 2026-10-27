@@ -1,4 +1,6 @@
 backend/data/
+frontend/node_modules/
+frontend/dist/
 venv/
 .venv/
 .idea/
