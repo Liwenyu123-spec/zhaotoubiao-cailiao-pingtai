@@ -130,6 +130,23 @@ onMounted(async () => {
         <span>检查提示，不是审查结论</span>
       </div>
       <div class="form-pad">
+        <div v-if="detail" class="task-box task-box-prominent">
+          <div class="subhead"><strong>材料任务</strong><span>当前项目的任务分派与完成情况</span></div>
+          <div class="extra-row">
+            <el-select v-model="taskForm.requirement_id" placeholder="选择要求" style="min-width: 260px">
+              <el-option v-for="item in detail.requirements" :key="item.id" :label="`${item.category}：${item.content.slice(0, 30)}`" :value="item.id" />
+            </el-select>
+            <el-input v-model="taskForm.department" placeholder="责任部门" style="width: 130px" />
+            <el-input v-model="taskForm.due_at" placeholder="截止日期" style="width: 150px" />
+            <el-button type="primary" @click="onCreateTask">分派任务</el-button>
+          </div>
+          <el-table :data="detail.tasks || []" empty-text="还没有材料任务">
+            <el-table-column prop="department" label="部门" width="100" />
+            <el-table-column prop="requirement_content" label="对应要求" min-width="260" />
+            <el-table-column prop="due_at" label="截止" width="130" />
+            <el-table-column prop="task_status" label="状态" width="100" />
+          </el-table>
+        </div>
         <el-alert
           title="关键条款、低置信项和空白扫描页都要人工确认。读不出的内容不会被补全。"
           type="warning"
@@ -174,23 +191,6 @@ onMounted(async () => {
             </template>
           </el-table-column>
         </el-table>
-        <div v-if="detail" class="task-box">
-          <div class="subhead"><strong>材料任务</strong><span>把要求分派给部门，后续接入责任人和材料档案</span></div>
-          <div class="extra-row">
-            <el-select v-model="taskForm.requirement_id" placeholder="选择要求" style="min-width: 260px">
-              <el-option v-for="item in detail.requirements" :key="item.id" :label="`${item.category}：${item.content.slice(0, 30)}`" :value="item.id" />
-            </el-select>
-            <el-input v-model="taskForm.department" placeholder="责任部门" style="width: 130px" />
-            <el-input v-model="taskForm.due_at" placeholder="截止日期" style="width: 150px" />
-            <el-button type="primary" @click="onCreateTask">分派任务</el-button>
-          </div>
-          <el-table :data="detail.tasks || []" empty-text="还没有材料任务">
-            <el-table-column prop="department" label="部门" width="100" />
-            <el-table-column prop="requirement_content" label="对应要求" min-width="260" />
-            <el-table-column prop="due_at" label="截止" width="130" />
-            <el-table-column prop="task_status" label="状态" width="100" />
-          </el-table>
-        </div>
       </div>
     </div>
   </div>
