@@ -11,6 +11,7 @@ import {
   listProjects,
   patchRequirement,
   patchTask,
+  runProjectChecks,
   uploadTaskFile,
   uploadDocument,
   type Project,
@@ -33,6 +34,7 @@ const assetTypes = ['证照', '业绩', '人员', '财务', '信用', '模板']
 const archiveAssets = ref<ArchiveAsset[]>([])
 const suggestions = ref<TaskSuggestion[]>([])
 const suggestionTrace = ref<string[]>([])
+const checkResult = ref<{ total_requirements: number; problem_count: number; pass: boolean; items: Array<{ id: number; category: string; content: string; problems: string[] }> } | null>(null)
 const archiveForm = reactive({ asset_type: '证照', title: '', holder_name: '', valid_until: '', confidentiality: 'internal', scope_note: '', source_project: '' })
 
 const statusText: Record<Requirement['status'], string> = {
@@ -150,6 +152,12 @@ async function onTaskFile(taskId: number, file: File) {
   return false
 }
 
+async function onRunChecks() {
+  if (!currentId.value) return
+  checkResult.value = await runProjectChecks(currentId.value)
+  ElMessage.success(`检查完成，发现 ${checkResult.value.problem_count} 项待处理问题`)
+}
+
 onMounted(async () => {
   await refreshProjects()
   await refreshArchive()
@@ -246,6 +254,13 @@ onMounted(async () => {
               <el-button size="small" @click="onAcceptSuggestion(item)">采用</el-button>
             </div>
           </div>
+        </div>
+        <div v-if="detail" class="check-box">
+          <div class="subhead"><strong>完整性核验</strong><el-button size="small" @click="onRunChecks">运行检查</el-button></div>
+          <el-alert v-if="checkResult" :title="checkResult.pass ? '当前项目未发现待处理问题' : `发现 ${checkResult.problem_count} 项待处理问题`" :type="checkResult.pass ? 'success' : 'warning'" :closable="false" />
+          <ul v-if="checkResult && !checkResult.pass" class="check-list">
+            <li v-for="item in checkResult.items" :key="item.id"><strong>#{{ item.id }} {{ item.category }}</strong>：{{ item.problems.join('、') }}</li>
+          </ul>
         </div>
         <el-alert
           title="关键条款、低置信项和空白扫描页都要人工确认。读不出的内容不会被补全。"

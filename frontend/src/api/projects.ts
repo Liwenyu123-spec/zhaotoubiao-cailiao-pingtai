@@ -105,3 +105,9 @@ export function generateTaskPlan(projectId: number) {
     `/api/projects/${projectId}/agent/task-plan`, { method: 'POST' },
   )
 }
+
+export function runProjectChecks(projectId: number) {
+  return api<{ total_requirements: number; problem_count: number; pass: boolean; items: Array<{ id: number; category: string; content: string; problems: string[] }> }>(
+    `/api/projects/${projectId}/checks`,
+  )
+}

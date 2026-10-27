@@ -215,6 +215,47 @@ def generate_task_plan(project_id: int) -> dict:
     }
 
 
+@app.get("/api/projects/{project_id}/checks")
+def project_checks(project_id: int) -> dict:
+    with connect() as conn:
+        project = conn.execute("SELECT id, name FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if project is None:
+            raise HTTPException(404, "项目不存在")
+        rows = conn.execute(
+            """
+            SELECT r.id, r.category, r.content, r.status,
+                   COUNT(DISTINCT t.id) AS task_count,
+                   COUNT(DISTINCT f.id) AS file_count
+            FROM requirements r
+            LEFT JOIN material_tasks t ON t.requirement_id = r.id
+            LEFT JOIN task_files f ON f.task_id = t.id
+            WHERE r.project_id = ?
+            GROUP BY r.id ORDER BY r.id
+            """, (project_id,)
+        ).fetchall()
+    items = []
+    for row in rows:
+        item = dict(row)
+        problems = []
+        if item["status"] == "pending":
+            problems.append("要求尚未人工确认")
+        if item["status"] != "not_applicable" and item["task_count"] == 0:
+            problems.append("尚未分派材料任务")
+        if item["task_count"] > 0 and item["file_count"] == 0:
+            problems.append("任务尚未上传证明材料")
+        if problems:
+            item["problems"] = problems
+            items.append(item)
+    return {
+        "project_id": project_id,
+        "project_name": project["name"],
+        "total_requirements": len(rows),
+        "problem_count": len(items),
+        "pass": not items,
+        "items": items,
+    }
+
+
 @app.post("/api/projects/{project_id}/tasks")
 def create_task(project_id: int, body: TaskIn) -> dict:
     with connect() as conn:
