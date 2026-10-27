@@ -88,7 +88,7 @@ export function patchRequirement(id: number, body: { status: Requirement['status
   })
 }
 
-export function createTask(projectId: number, body: { requirement_id: number; department: string; due_at: string }) {
+export function createTask(projectId: number, body: { requirement_id: number; department: string; assignee_id?: number; due_at: string }) {
   return api<MaterialTask>(`/api/projects/${projectId}/tasks`, { method: 'POST', body: JSON.stringify(body) })
 }
 

@@ -34,7 +34,7 @@ const detail = ref<ProjectDetail | null>(null)
 const loading = ref(false)
 const form = reactive({ name: '', code: '', bidder: '', deadline: '' })
 const extra = reactive({ category: '资格', content: '' })
-const taskForm = reactive({ requirement_id: 0, department: '商务', due_at: '' })
+const taskForm = reactive({ requirement_id: 0, department: '商务', assignee_id: undefined as number | undefined, due_at: '' })
 const users = ref<Array<{ id: number; display_name: string; role: string }>>([])
 const categories = ['资格', '评分', '格式', '签章', '时间', '商务', '技术', '其他']
 const departments = ['投标负责人', '商务', '技术', '法务合规', '财务', '采购', '项目管理']
@@ -148,6 +148,7 @@ async function onCreateTask() {
   if (!currentId.value || !taskForm.requirement_id) return ElMessage.warning('请选择要分派的要求')
   await createTask(currentId.value, { ...taskForm })
   taskForm.requirement_id = 0
+  taskForm.assignee_id = undefined
   taskForm.due_at = ''
   ElMessage.success('任务已创建')
   await openProject(currentId.value)
