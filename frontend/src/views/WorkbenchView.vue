@@ -10,10 +10,12 @@ import {
   getProject,
   listProjects,
   patchRequirement,
+  patchTask,
   uploadDocument,
   type Project,
   type ProjectDetail,
   type Requirement,
+  type MaterialTask,
   type TaskSuggestion,
 } from '../api/projects'
 
@@ -135,6 +137,12 @@ async function onAcceptSuggestion(item: TaskSuggestion) {
   ElMessage.success('已采用建议并创建任务')
 }
 
+async function onTaskStatusChange(task: { id: number }, status: 'open' | 'submitted' | 'done' | 'recheck') {
+  await patchTask(task.id, { task_status: status })
+  if (currentId.value) await openProject(currentId.value)
+  ElMessage.success('任务状态已更新')
+}
+
 onMounted(async () => {
   await refreshProjects()
   await refreshArchive()
@@ -206,7 +214,16 @@ onMounted(async () => {
             <el-table-column prop="department" label="部门" width="100" />
             <el-table-column prop="requirement_content" label="对应要求" min-width="260" />
             <el-table-column prop="due_at" label="截止" width="130" />
-            <el-table-column prop="task_status" label="状态" width="100" />
+            <el-table-column label="状态" width="150">
+              <template #default="{ row }">
+                <el-select :model-value="row.task_status" size="small" @change="(value: 'open' | 'submitted' | 'done' | 'recheck') => onTaskStatusChange(row as MaterialTask, value)">
+                  <el-option label="待处理" value="open" />
+                  <el-option label="已提交" value="submitted" />
+                  <el-option label="已完成" value="done" />
+                  <el-option label="需重新检查" value="recheck" />
+                </el-select>
+              </template>
+            </el-table-column>
           </el-table>
           <div v-if="suggestions.length" class="suggestion-list">
             <div class="suggestion-head">Agent 建议（需人工确认）<span>{{ suggestionTrace.join(' → ') }}</span></div>
