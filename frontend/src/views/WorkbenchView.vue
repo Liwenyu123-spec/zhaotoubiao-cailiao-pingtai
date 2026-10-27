@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { createArchiveAsset, listArchiveAssets, type ArchiveAsset } from '../api/archive'
 import {
   addRequirement,
   createProject,
@@ -23,6 +24,9 @@ const extra = reactive({ category: '资格', content: '' })
 const taskForm = reactive({ requirement_id: 0, department: '商务', due_at: '' })
 const categories = ['资格', '评分', '格式', '签章', '时间', '商务', '技术', '其他']
 const departments = ['投标负责人', '商务', '技术', '法务合规', '财务', '采购', '项目管理']
+const assetTypes = ['证照', '业绩', '人员', '财务', '信用', '模板']
+const archiveAssets = ref<ArchiveAsset[]>([])
+const archiveForm = reactive({ asset_type: '证照', title: '', holder_name: '', valid_until: '', confidentiality: 'internal', scope_note: '', source_project: '' })
 
 const statusText: Record<Requirement['status'], string> = {
   pending: '待确认',
@@ -32,6 +36,22 @@ const statusText: Record<Requirement['status'], string> = {
 
 async function refreshProjects() {
   projects.value = await listProjects()
+}
+
+async function refreshArchive() {
+  archiveAssets.value = await listArchiveAssets()
+}
+
+async function onAddArchive() {
+  if (!archiveForm.title.trim()) return ElMessage.warning('请填写档案名称')
+  await createArchiveAsset({ ...archiveForm })
+  archiveForm.title = ''
+  archiveForm.holder_name = ''
+  archiveForm.valid_until = ''
+  archiveForm.scope_note = ''
+  archiveForm.source_project = ''
+  ElMessage.success('企业档案已登记')
+  await refreshArchive()
 }
 
 async function openProject(id: number) {
@@ -97,6 +117,7 @@ async function onCreateTask() {
 
 onMounted(async () => {
   await refreshProjects()
+  await refreshArchive()
   if (projects.value[0]) await openProject(projects.value[0].id)
 })
 </script>
@@ -123,6 +144,23 @@ onMounted(async () => {
           <strong>{{ item.name }}</strong>
           <span>{{ item.code || '无编号' }} · 待确认 {{ item.pending_count }}/{{ item.requirement_count }}</span>
         </button>
+        <div class="archive-box">
+          <div class="subhead"><strong>企业档案</strong><span>可复用材料登记</span></div>
+          <div class="archive-form">
+            <el-select v-model="archiveForm.asset_type" style="width: 100px"><el-option v-for="item in assetTypes" :key="item" :label="item" :value="item" /></el-select>
+            <el-input v-model="archiveForm.title" placeholder="档案名称" />
+            <el-input v-model="archiveForm.holder_name" placeholder="持有主体/人员" />
+            <el-input v-model="archiveForm.valid_until" placeholder="有效期，如 2027-12-31" />
+            <el-input v-model="archiveForm.scope_note" placeholder="适用范围" />
+            <el-button @click="onAddArchive">登记档案</el-button>
+          </div>
+          <div v-if="archiveAssets.length" class="archive-list">
+            <div v-for="item in archiveAssets.slice(0, 5)" :key="item.id" class="archive-item">
+              <strong>{{ item.title }}</strong><span>{{ item.asset_type }} · {{ item.valid_until || '未登记有效期' }}</span>
+            </div>
+          </div>
+          <p v-else class="muted">还没有企业档案。</p>
+        </div>
       </div>
     </div>
     <div class="panel">

@@ -23,4 +23,9 @@ body { margin: 0; background: #f3f1ea; }
 .subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .subhead strong { color: #245b3b; font-size: 18px; }
 .subhead span { color: #6d756e; font-size: 13px; }
+.archive-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e6e1d8; }
+.archive-form { display: grid; gap: 8px; margin-top: 10px; }
+.archive-list { display: grid; gap: 6px; margin-top: 12px; }
+.archive-item { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 8px; background: #f7f8f5; font-size: 13px; }
+.archive-item span { color: #6d756e; }
 @media (max-width: 1100px) { .grid-2 { grid-template-columns: 1fr; } }
