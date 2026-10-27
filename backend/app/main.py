@@ -320,6 +320,11 @@ def create_clarification_impact(clarification_id: int, body: ClarificationImpact
             VALUES (?, ?, ?, ?)""",
             (clarification_id, body.requirement_id, body.impact_note.strip(), int(body.needs_recheck)),
         )
+        if body.needs_recheck:
+            conn.execute(
+                "UPDATE material_tasks SET task_status = 'recheck' WHERE requirement_id = ? AND task_status IN ('submitted', 'done')",
+                (body.requirement_id,),
+            )
         row = conn.execute("SELECT * FROM clarification_impacts WHERE id = ?", (cur.lastrowid,)).fetchone()
     return dict(row)
 
