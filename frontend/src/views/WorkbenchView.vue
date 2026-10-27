@@ -16,6 +16,7 @@ import {
   createClarification,
   createClarificationImpact,
   listClarifications,
+  listAuditEvents,
   uploadTaskFile,
   uploadDocument,
   type Project,
@@ -40,6 +41,7 @@ const suggestions = ref<TaskSuggestion[]>([])
 const suggestionTrace = ref<string[]>([])
 const checkResult = ref<{ total_requirements: number; problem_count: number; pass: boolean; items: Array<{ id: number; category: string; content: string; problems: string[] }> } | null>(null)
 const clarifications = ref<Array<{ id: number; title: string; change_type: string; received_at: string; summary: string }>>([])
+const auditEvents = ref<Array<{ id: number; action: string; target_type: string; target_id?: number; detail: string; created_at: string }>>([])
 const clarificationForm = reactive({ title: '', change_type: 'changed', received_at: '', summary: '' })
 const impactForm = reactive({ clarification_id: 0, requirement_id: 0, impact_note: '' })
 const archiveForm = reactive({ asset_type: '证照', title: '', holder_name: '', valid_until: '', confidentiality: 'internal', scope_note: '', source_project: '' })
@@ -74,6 +76,7 @@ async function openProject(id: number) {
   currentId.value = id
   detail.value = await getProject(id)
   clarifications.value = await listClarifications(id)
+  auditEvents.value = await listAuditEvents(id)
 }
 
 async function onAddClarification() {
@@ -311,6 +314,11 @@ onMounted(async () => {
             <el-input v-model="impactForm.impact_note" placeholder="影响说明" />
             <el-button @click="onAddImpact">标记重检</el-button>
           </div>
+        </div>
+        <div v-if="detail" class="audit-box">
+          <div class="subhead"><strong>操作记录</strong><span>最近 100 条项目审计记录</span></div>
+          <p v-if="!auditEvents.length" class="muted">当前项目还没有审计记录。</p>
+          <div v-for="item in auditEvents" :key="item.id" class="audit-item"><span>{{ item.created_at }}</span><strong>{{ item.action }}</strong><span>{{ item.target_type }}{{ item.target_id ? ` #${item.target_id}` : '' }}</span><em>{{ item.detail }}</em></div>
         </div>
         <el-alert
           title="关键条款、低置信项和空白扫描页都要人工确认。读不出的内容不会被补全。"

@@ -37,4 +37,8 @@ body { margin: 0; background: #f3f1ea; }
 .clarification-box { margin-top: 18px; padding-top: 14px; border-top: 1px solid #e6e1d8; }
 .clarification-item { padding: 8px 10px; margin: 8px 0 0; border-radius: 8px; background: #f7f8f5; font-size: 13px; line-height: 1.6; }
 .clarification-item span { color: #6d756e; }
+.audit-box { margin-top: 18px; padding-top: 14px; border-top: 1px solid #e6e1d8; }
+.audit-item { display: grid; grid-template-columns: 150px 70px 150px 1fr; gap: 8px; padding: 6px 0; border-top: 1px solid #f0eee8; font-size: 12px; }
+.audit-item span { color: #6d756e; }
+.audit-item em { color: #8a5a2b; font-style: normal; }
 @media (max-width: 1100px) { .grid-2 { grid-template-columns: 1fr; } }
