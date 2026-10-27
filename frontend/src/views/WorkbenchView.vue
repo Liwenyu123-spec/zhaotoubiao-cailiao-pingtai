@@ -12,7 +12,6 @@ import {
   type Project,
   type ProjectDetail,
   type Requirement,
-  type MaterialTask,
 } from '../api/projects'
 
 const projects = ref<Project[]>([])
