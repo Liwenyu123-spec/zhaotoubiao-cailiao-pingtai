@@ -113,5 +113,9 @@ export function runProjectChecks(projectId: number) {
 }
 
 export function exportProjectChecks(projectId: number) {
-  return api<Blob>(`/api/projects/${projectId}/checks/export`)
+  const token = localStorage.getItem('access_token')
+  return fetch(`/api/projects/${projectId}/checks/export`, { headers: token ? { Authorization: `Bearer ${token}` } : {} }).then((response) => {
+    if (!response.ok) throw new Error('导出失败')
+    return response.blob()
+  })
 }
