@@ -77,7 +77,7 @@ async function onAdd() {
   await openProject(currentId.value)
 }
 
-async function setStatus(row: Requirement, status: Requirement['status']) {
+async function setStatus(row: { id: number }, status: Requirement['status']) {
   await patchRequirement(row.id, { status })
   await refreshProjects()
   if (currentId.value) await openProject(currentId.value)
@@ -158,8 +158,8 @@ onMounted(async () => {
           </el-table-column>
           <el-table-column label="操作" width="170">
             <template #default="{ row }">
-              <el-button size="small" @click="setStatus(row, 'confirmed')">确认</el-button>
-              <el-button size="small" @click="setStatus(row, 'not_applicable')">不适用</el-button>
+              <el-button size="small" @click="setStatus(row as Requirement, 'confirmed')">确认</el-button>
+              <el-button size="small" @click="setStatus(row as Requirement, 'not_applicable')">不适用</el-button>
             </template>
           </el-table-column>
         </el-table>
