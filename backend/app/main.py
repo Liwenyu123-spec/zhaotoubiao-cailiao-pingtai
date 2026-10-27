@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .auth import current_user, login, logout, seed_users
@@ -254,6 +254,22 @@ def project_checks(project_id: int) -> dict:
         "pass": not items,
         "items": items,
     }
+
+
+@app.get("/api/projects/{project_id}/checks/export")
+def export_project_checks(project_id: int) -> StreamingResponse:
+    report = project_checks(project_id)
+    import csv
+    import io
+    stream = io.StringIO()
+    writer = csv.writer(stream)
+    writer.writerow(["项目", "要求编号", "类别", "要求内容", "待处理问题"])
+    for item in report["items"]:
+        writer.writerow([report["project_name"], item["id"], item["category"], item["content"], "；".join(item["problems"])])
+    data = stream.getvalue().encode("utf-8-sig")
+    return StreamingResponse(iter([data]), media_type="text/csv", headers={
+        "Content-Disposition": f'attachment; filename="project-{project_id}-check-report.csv"'
+    })
 
 
 @app.post("/api/projects/{project_id}/tasks")

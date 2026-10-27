@@ -12,6 +12,7 @@ import {
   patchRequirement,
   patchTask,
   runProjectChecks,
+  exportProjectChecks,
   uploadTaskFile,
   uploadDocument,
   type Project,
@@ -158,6 +159,17 @@ async function onRunChecks() {
   ElMessage.success(`检查完成，发现 ${checkResult.value.problem_count} 项待处理问题`)
 }
 
+async function onExportChecks() {
+  if (!currentId.value) return
+  const blob = await exportProjectChecks(currentId.value)
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `project-${currentId.value}-check-report.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 onMounted(async () => {
   await refreshProjects()
   await refreshArchive()
@@ -256,7 +268,7 @@ onMounted(async () => {
           </div>
         </div>
         <div v-if="detail" class="check-box">
-          <div class="subhead"><strong>完整性核验</strong><el-button size="small" @click="onRunChecks">运行检查</el-button></div>
+          <div class="subhead"><strong>完整性核验</strong><span><el-button size="small" @click="onRunChecks">运行检查</el-button><el-button size="small" :disabled="!checkResult" @click="onExportChecks">导出 CSV</el-button></span></div>
           <el-alert v-if="checkResult" :title="checkResult.pass ? '当前项目未发现待处理问题' : `发现 ${checkResult.problem_count} 项待处理问题`" :type="checkResult.pass ? 'success' : 'warning'" :closable="false" />
           <ul v-if="checkResult && !checkResult.pass" class="check-list">
             <li v-for="item in checkResult.items" :key="item.id"><strong>#{{ item.id }} {{ item.category }}</strong>：{{ item.problems.join('、') }}</li>

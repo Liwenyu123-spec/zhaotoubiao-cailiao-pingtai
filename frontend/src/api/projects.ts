@@ -111,3 +111,7 @@ export function runProjectChecks(projectId: number) {
     `/api/projects/${projectId}/checks`,
   )
 }
+
+export function exportProjectChecks(projectId: number) {
+  return api<Blob>(`/api/projects/${projectId}/checks/export`)
+}
