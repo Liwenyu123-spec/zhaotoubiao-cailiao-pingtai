@@ -9,6 +9,7 @@ import {
   generateTaskPlan,
   getProject,
   listProjects,
+  listUsers,
   patchRequirement,
   patchTask,
   runProjectChecks,
@@ -34,6 +35,7 @@ const loading = ref(false)
 const form = reactive({ name: '', code: '', bidder: '', deadline: '' })
 const extra = reactive({ category: '资格', content: '' })
 const taskForm = reactive({ requirement_id: 0, department: '商务', due_at: '' })
+const users = ref<Array<{ id: number; display_name: string; role: string }>>([])
 const categories = ['资格', '评分', '格式', '签章', '时间', '商务', '技术', '其他']
 const departments = ['投标负责人', '商务', '技术', '法务合规', '财务', '采购', '项目管理']
 const assetTypes = ['证照', '业绩', '人员', '财务', '信用', '模板']
@@ -206,6 +208,7 @@ async function onExportManifest() {
 
 onMounted(async () => {
   await refreshProjects()
+  users.value = await listUsers()
   await refreshArchive()
   if (projects.value[0]) await openProject(projects.value[0].id)
 })
@@ -267,6 +270,9 @@ onMounted(async () => {
             </el-select>
             <el-select v-model="taskForm.department" placeholder="责任部门" style="width: 150px">
               <el-option v-for="item in departments" :key="item" :label="item" :value="item" />
+            </el-select>
+            <el-select v-model="taskForm.assignee_id" placeholder="责任人" clearable style="width: 150px">
+              <el-option v-for="item in users" :key="item.id" :label="item.display_name" :value="item.id" />
             </el-select>
             <el-input v-model="taskForm.due_at" placeholder="截止日期" style="width: 150px" />
             <el-button type="primary" @click="onCreateTask">分派任务</el-button>
