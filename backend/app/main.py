@@ -260,6 +260,29 @@ def patch_task(task_id: int, body: TaskPatch) -> dict:
     return dict(row)
 
 
+@app.post("/api/tasks/{task_id}/files")
+async def upload_task_file(task_id: int, file: UploadFile = File(...)) -> dict:
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in {".txt", ".md", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip"}:
+        raise HTTPException(400, "任务材料仅支持常见文档、表格和压缩包")
+    with connect() as conn:
+        task = conn.execute("SELECT id FROM material_tasks WHERE id = ?", (task_id,)).fetchone()
+        if task is None:
+            raise HTTPException(404, "任务不存在")
+    stored = f"{uuid.uuid4().hex}{suffix}"
+    dest = UPLOADS / stored
+    with dest.open("wb") as out:
+        import shutil
+        shutil.copyfileobj(file.file, out)
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO task_files (task_id, filename, stored_name) VALUES (?, ?, ?)",
+            (task_id, file.filename or stored, stored),
+        )
+        row = conn.execute("SELECT * FROM task_files WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return dict(row)
+
+
 @app.get("/api/archive-assets")
 def list_archive_assets() -> list[dict]:
     with connect() as conn:

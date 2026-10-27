@@ -11,6 +11,7 @@ import {
   listProjects,
   patchRequirement,
   patchTask,
+  uploadTaskFile,
   uploadDocument,
   type Project,
   type ProjectDetail,
@@ -143,6 +144,12 @@ async function onTaskStatusChange(task: { id: number }, status: 'open' | 'submit
   ElMessage.success('任务状态已更新')
 }
 
+async function onTaskFile(taskId: number, file: File) {
+  await uploadTaskFile(taskId, file)
+  ElMessage.success('任务材料已上传')
+  return false
+}
+
 onMounted(async () => {
   await refreshProjects()
   await refreshArchive()
@@ -222,6 +229,13 @@ onMounted(async () => {
                   <el-option label="已完成" value="done" />
                   <el-option label="需重新检查" value="recheck" />
                 </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="材料" width="130">
+              <template #default="{ row }">
+                <el-upload :show-file-list="false" :before-upload="(file: File) => onTaskFile(row.id, file)">
+                  <el-button size="small">上传材料</el-button>
+                </el-upload>
               </template>
             </el-table-column>
           </el-table>

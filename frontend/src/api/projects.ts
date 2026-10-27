@@ -94,6 +94,12 @@ export function patchTask(id: number, body: { task_status: MaterialTask['task_st
   return api<MaterialTask>(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 }
 
+export function uploadTaskFile(taskId: number, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return api<{ id: number; filename: string }>(`/api/tasks/${taskId}/files`, { method: 'POST', body: form })
+}
+
 export function generateTaskPlan(projectId: number) {
   return api<{ suggestions: TaskSuggestion[]; needs_human_review: boolean; trace: string[]; model_used: boolean }>(
     `/api/projects/${projectId}/agent/task-plan`, { method: 'POST' },
