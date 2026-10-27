@@ -93,6 +93,30 @@ class RequirementPatch(BaseModel):
     note: str | None = None
 
 
+class TaskIn(BaseModel):
+    requirement_id: int
+    department: str = ""
+    assignee_id: int | None = None
+    due_at: str = ""
+
+
+class TaskPatch(BaseModel):
+    department: str | None = None
+    assignee_id: int | None = None
+    due_at: str | None = None
+    task_status: str | None = None
+
+
+class ArchiveIn(BaseModel):
+    asset_type: str
+    title: str = Field(min_length=1, max_length=200)
+    holder_name: str = ""
+    valid_until: str = ""
+    confidentiality: str = "internal"
+    scope_note: str = ""
+    source_project: str = ""
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True, "stage": "test-v0", "external_model": False}
@@ -138,11 +162,102 @@ def get_project(project_id: int) -> dict:
             "SELECT * FROM requirements WHERE project_id = ? ORDER BY id",
             (project_id,),
         ).fetchall()
+        tasks = conn.execute(
+            """
+            SELECT t.*, r.content AS requirement_content, u.display_name AS assignee_name
+            FROM material_tasks t
+            JOIN requirements r ON r.id = t.requirement_id
+            LEFT JOIN users u ON u.id = t.assignee_id
+            WHERE t.project_id = ? ORDER BY t.id DESC
+            """,
+            (project_id,),
+        ).fetchall()
     return {
         "project": dict(project),
         "documents": [dict(row) for row in documents],
         "requirements": [dict(row) for row in requirements],
+        "tasks": [dict(row) for row in tasks],
     }
+
+
+@app.get("/api/projects/{project_id}/tasks")
+def list_tasks(project_id: int) -> list[dict]:
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT t.*, r.content AS requirement_content, u.display_name AS assignee_name
+            FROM material_tasks t JOIN requirements r ON r.id = t.requirement_id
+            LEFT JOIN users u ON u.id = t.assignee_id
+            WHERE t.project_id = ? ORDER BY t.id DESC
+            """, (project_id,)
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/projects/{project_id}/tasks")
+def create_task(project_id: int, body: TaskIn) -> dict:
+    with connect() as conn:
+        requirement = conn.execute(
+            "SELECT id FROM requirements WHERE id = ? AND project_id = ?",
+            (body.requirement_id, project_id),
+        ).fetchone()
+        if requirement is None:
+            raise HTTPException(404, "要求不存在或不属于该项目")
+        cur = conn.execute(
+            """INSERT INTO material_tasks
+            (project_id, requirement_id, department, assignee_id, due_at)
+            VALUES (?, ?, ?, ?, ?)""",
+            (project_id, body.requirement_id, body.department.strip(), body.assignee_id, body.due_at.strip()),
+        )
+        row = conn.execute(
+            """SELECT t.*, r.content AS requirement_content, u.display_name AS assignee_name
+            FROM material_tasks t JOIN requirements r ON r.id=t.requirement_id
+            LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?""", (cur.lastrowid,)
+        ).fetchone()
+    return dict(row)
+
+
+@app.patch("/api/tasks/{task_id}")
+def patch_task(task_id: int, body: TaskPatch) -> dict:
+    allowed = {"open", "submitted", "done", "recheck"}
+    if body.task_status is not None and body.task_status not in allowed:
+        raise HTTPException(400, "任务状态不合法")
+    fields = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not fields:
+        raise HTTPException(400, "没有要更新的字段")
+    sets = ", ".join(f"{k} = ?" for k in fields)
+    with connect() as conn:
+        existing = conn.execute("SELECT id FROM material_tasks WHERE id = ?", (task_id,)).fetchone()
+        if existing is None:
+            raise HTTPException(404, "任务不存在")
+        conn.execute(f"UPDATE material_tasks SET {sets} WHERE id = ?", (*fields.values(), task_id))
+        row = conn.execute(
+            """SELECT t.*, r.content AS requirement_content, u.display_name AS assignee_name
+            FROM material_tasks t JOIN requirements r ON r.id=t.requirement_id
+            LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?""", (task_id,)
+        ).fetchone()
+    return dict(row)
+
+
+@app.get("/api/archive-assets")
+def list_archive_assets() -> list[dict]:
+    with connect() as conn:
+        rows = conn.execute("SELECT * FROM archive_assets ORDER BY id DESC").fetchall()
+    return [dict(row) for row in rows]
+
+
+@app.post("/api/archive-assets")
+def create_archive_asset(body: ArchiveIn) -> dict:
+    with connect() as conn:
+        cur = conn.execute(
+            """INSERT INTO archive_assets
+            (asset_type, title, holder_name, valid_until, confidentiality, scope_note, source_project)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (body.asset_type.strip(), body.title.strip(), body.holder_name.strip(), body.valid_until.strip(),
+             body.confidentiality.strip(), body.scope_note.strip(), body.source_project.strip()),
+        )
+        row = conn.execute("SELECT * FROM archive_assets WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return dict(row)
 
 
 @app.post("/api/projects/{project_id}/documents")
